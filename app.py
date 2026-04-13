@@ -2,35 +2,47 @@ import streamlit as st
 import random
 import pandas as pd
 
-st.set_page_config(page_title="AI Irrigation System", layout="centered")
+st.set_page_config(page_title="AI Irrigation System", layout="wide")
 
-# ---------------- LOGIN STATE ----------------
+# ---------- UI STYLE ----------
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(to right, #d4fc79, #96e6a1);
+}
+h1, h2, h3 {
+    color: #0a3d62;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- LOGIN STATE ----------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ---------------- LOGIN FUNCTION ----------------
+# ---------- LOGIN ----------
 def login():
     st.title("🔐 Smart Irrigation Login")
 
-    username = st.text_input("Email / Username")
+    email = st.text_input("Enter Gmail")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username.strip() == "admin" and password.strip() == "1234":
+        if "@gmail.com" in email and len(password) > 3:
             st.session_state.logged_in = True
-            st.rerun()   # IMPORTANT FIX
+            st.rerun()
         else:
-            st.error("Invalid Credentials")
+            st.error("Enter valid Gmail")
 
-# ---------------- DASHBOARD ----------------
+# ---------- DASHBOARD ----------
 def dashboard():
 
-    st.title("🌱 AI Smart Irrigation Dashboard")
+    st.title("🌱 AI Smart Irrigation System")
 
-    # TOP CARDS
+    # TOP METRICS
     col1, col2, col3 = st.columns(3)
-    col1.metric("💧 Water Level", "65%")
-    col2.metric("🌡 Temperature", "32°C")
+    col1.metric("💧 Water Level", f"{random.randint(50,90)}%")
+    col2.metric("🌡 Temperature", f"{random.randint(25,40)}°C")
     col3.metric("🌧 Rain Chance", f"{random.randint(20,90)}%")
 
     st.divider()
@@ -56,95 +68,116 @@ def dashboard():
         "Center Pivot Irrigation", "Micro Irrigation",
         "Flood Irrigation", "Rain Gun Irrigation"
     ]
+
     method = st.sidebar.selectbox("Irrigation Method", irrigation_methods)
 
-    # RAIN PREDICTION
+    # ---------- AI SUGGESTION ----------
+    best_method = {
+        "Rice": "Flood Irrigation",
+        "Wheat": "Sprinkler Irrigation",
+        "Maize": "Drip Irrigation",
+        "Sugarcane": "Furrow Irrigation",
+        "Cotton": "Drip Irrigation",
+        "Tomato": "Drip Irrigation",
+        "Potato": "Sprinkler Irrigation",
+        "Onion": "Drip Irrigation",
+        "Mango": "Basin Irrigation",
+        "Banana": "Drip Irrigation",
+        "Grapes": "Drip Irrigation",
+        "Chilli": "Drip Irrigation"
+    }
+
+    suggested = best_method[crop]
+
+    # ---------- RAIN ----------
     rain_probability = random.randint(0, 100)
 
     st.subheader("🌧 Rain Prediction")
     st.write(f"{rain_probability}% chance of rain")
 
-    # CROP WATER REQUIREMENT
-    crop_water = {
-        "Rice": 80, "Wheat": 50, "Maize": 60, "Sugarcane": 90,
-        "Cotton": 70, "Tomato": 65, "Potato": 55, "Onion": 50,
-        "Mango": 40, "Banana": 85, "Grapes": 60, "Chilli": 55
-    }
-
-    required = crop_water[crop]
-
-    # AI DECISION
-    if soil < required and rain_probability < 40:
+    # ---------- AI DECISION ----------
+    if soil < 40 and rain_probability < 40:
         decision = "🟢 Irrigation ON"
-        reason = "Low soil moisture + low rain"
     elif rain_probability > 60:
         decision = "🔴 Irrigation OFF"
-        reason = "Rain expected"
     else:
         decision = "🟡 Moderate Irrigation"
-        reason = "Balanced condition"
 
-    # DISPLAY
     st.subheader("🤖 AI Decision")
     st.success(decision)
 
-    st.write("🧠 Reason:", reason)
-    st.write("🌱 Crop:", crop)
-    st.write("💧 Method:", method)
+    # ---------- CROP INTELLIGENCE ----------
+    st.subheader("🌱 Crop Intelligence")
+    st.info(f"Best method for {crop}: {suggested}")
 
-    # SCHEDULING
+    if method != suggested:
+        st.warning("⚠ Selected method is not optimal")
+
+    # ---------- SCHEDULE ----------
     if rain_probability > 60:
-        schedule = "Next irrigation after 2 days"
+        schedule = "After 2 days"
     elif soil < 30:
-        schedule = "Immediate irrigation required"
+        schedule = "Immediate"
     else:
-        schedule = "Irrigate after 1 day"
+        schedule = "After 1 day"
 
     st.subheader("⏱ Irrigation Schedule")
-    st.info(schedule)
+    st.success(schedule)
 
-    # GRAPH
+    # ---------- GRAPH ----------
     st.subheader("📈 Soil Moisture Trend")
 
     data = pd.DataFrame({
-        "Day": ["D1", "D2", "D3", "D4", "D5"],
-        "Moisture": [
-            max(0, soil - 10),
-            soil - 5,
-            soil,
-            soil + 5,
-            min(100, soil + 10)
-        ]
+        "Day": ["D1","D2","D3","D4","D5"],
+        "Moisture": [soil-10, soil-5, soil, soil+5, soil+10]
     })
 
     st.line_chart(data.set_index("Day"))
 
-    # WATER SAVING
-    water_saved = max(0, 100 - required)
+    # ---------- SENSOR SIMULATION ----------
+    st.subheader("📡 Sensor Data")
 
-    st.subheader("💧 Water Saving Estimate")
-    st.write(f"{water_saved}% water optimized")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Soil Sensor", f"{random.randint(20,80)}%")
+    col2.metric("Temp Sensor", f"{random.randint(25,40)}°C")
+    col3.metric("Water Sensor", f"{random.randint(30,90)}%")
 
-    # EFFICIENCY
-    score = 100 - abs(50 - soil)
+    # ---------- MAP ----------
+    st.subheader("🌍 Farm Location")
 
-    st.subheader("📊 Efficiency Score")
-    st.progress(score)
-    st.write(f"{score}% Efficient")
+    location = pd.DataFrame({
+        'lat': [13.6],
+        'lon': [79.4]
+    })
 
-    # ALERTS
-    st.subheader("🚨 Active Alerts")
+    st.map(location)
 
-    if water < 30:
-        st.error("⚠ Low Water Level")
+    # ---------- WATER ANALYTICS ----------
+    st.subheader("📊 Water Usage Analytics")
 
-    if temperature > 38:
-        st.warning("🔥 High Temperature Risk")
+    used = random.randint(40, 80)
+    saved = 100 - used
 
-    if rain_probability > 80:
-        st.info("🌧 Heavy Rain Expected")
+    chart = pd.DataFrame({
+        "Type": ["Used Water", "Saved Water"],
+        "Value": [used, saved]
+    })
 
-# ---------------- ROUTING ----------------
+    st.bar_chart(chart.set_index("Type"))
+
+    # ---------- AI EXPLANATION ----------
+    st.subheader("🧠 AI Explanation")
+
+    st.write(f"""
+    Soil Moisture: {soil}%
+    Rain Probability: {rain_probability}%
+    Crop: {crop}
+
+    Decision: {decision}
+    Recommended Method: {suggested}
+    """)
+
+# ---------- ROUTING ----------
 if not st.session_state.logged_in:
     login()
 else:
