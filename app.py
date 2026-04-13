@@ -4,10 +4,11 @@ import pandas as pd
 
 st.set_page_config(page_title="AI Irrigation System", layout="centered")
 
-# ---------------- LOGIN SYSTEM ----------------
+# ---------------- LOGIN STATE ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# ---------------- LOGIN FUNCTION ----------------
 def login():
     st.title("🔐 Smart Irrigation Login")
 
@@ -15,18 +16,18 @@ def login():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username == "admin" and password == "1234":
+        if username.strip() == "admin" and password.strip() == "1234":
             st.session_state.logged_in = True
-            st.success("Login Successful")
+            st.rerun()   # IMPORTANT FIX
         else:
             st.error("Invalid Credentials")
 
-# ---------------- MAIN APP ----------------
+# ---------------- DASHBOARD ----------------
 def dashboard():
 
     st.title("🌱 AI Smart Irrigation Dashboard")
 
-    # TOP STATUS CARDS
+    # TOP CARDS
     col1, col2, col3 = st.columns(3)
     col1.metric("💧 Water Level", "65%")
     col2.metric("🌡 Temperature", "32°C")
@@ -34,7 +35,7 @@ def dashboard():
 
     st.divider()
 
-    # INPUTS
+    # SIDEBAR INPUTS
     st.sidebar.header("Input Parameters")
 
     soil = st.sidebar.slider("Soil Moisture (%)", 0, 100, 40)
@@ -57,13 +58,13 @@ def dashboard():
     ]
     method = st.sidebar.selectbox("Irrigation Method", irrigation_methods)
 
-    # RAIN LOGIC
+    # RAIN PREDICTION
     rain_probability = random.randint(0, 100)
 
     st.subheader("🌧 Rain Prediction")
     st.write(f"{rain_probability}% chance of rain")
 
-    # CROP WATER NEED
+    # CROP WATER REQUIREMENT
     crop_water = {
         "Rice": 80, "Wheat": 50, "Maize": 60, "Sugarcane": 90,
         "Cotton": 70, "Tomato": 65, "Potato": 55, "Onion": 50,
@@ -75,25 +76,29 @@ def dashboard():
     # AI DECISION
     if soil < required and rain_probability < 40:
         decision = "🟢 Irrigation ON"
+        reason = "Low soil moisture + low rain"
     elif rain_probability > 60:
         decision = "🔴 Irrigation OFF"
+        reason = "Rain expected"
     else:
         decision = "🟡 Moderate Irrigation"
+        reason = "Balanced condition"
 
-    # DISPLAY CARDS
+    # DISPLAY
     st.subheader("🤖 AI Decision")
     st.success(decision)
 
+    st.write("🧠 Reason:", reason)
     st.write("🌱 Crop:", crop)
     st.write("💧 Method:", method)
 
-    # SCHEDULE
+    # SCHEDULING
     if rain_probability > 60:
-        schedule = "After 2 days"
+        schedule = "Next irrigation after 2 days"
     elif soil < 30:
-        schedule = "Immediately"
+        schedule = "Immediate irrigation required"
     else:
-        schedule = "After 1 day"
+        schedule = "Irrigate after 1 day"
 
     st.subheader("⏱ Irrigation Schedule")
     st.info(schedule)
@@ -103,12 +108,31 @@ def dashboard():
 
     data = pd.DataFrame({
         "Day": ["D1", "D2", "D3", "D4", "D5"],
-        "Moisture": [soil-10, soil-5, soil, soil+5, soil+10]
+        "Moisture": [
+            max(0, soil - 10),
+            soil - 5,
+            soil,
+            soil + 5,
+            min(100, soil + 10)
+        ]
     })
 
     st.line_chart(data.set_index("Day"))
 
-    # ALERTS SECTION (LIKE YOUR IMAGE)
+    # WATER SAVING
+    water_saved = max(0, 100 - required)
+
+    st.subheader("💧 Water Saving Estimate")
+    st.write(f"{water_saved}% water optimized")
+
+    # EFFICIENCY
+    score = 100 - abs(50 - soil)
+
+    st.subheader("📊 Efficiency Score")
+    st.progress(score)
+    st.write(f"{score}% Efficient")
+
+    # ALERTS
     st.subheader("🚨 Active Alerts")
 
     if water < 30:
