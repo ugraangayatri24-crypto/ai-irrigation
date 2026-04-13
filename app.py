@@ -4,125 +4,124 @@ import pandas as pd
 
 st.set_page_config(page_title="AI Irrigation System", layout="centered")
 
-st.title("🌱 Smart AI Irrigation System (Final Advanced)")
-st.write("AI + Weather + Crop-based Intelligent Irrigation System")
+# ---------------- LOGIN SYSTEM ----------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-# INPUTS
-st.sidebar.header("Input Parameters")
+def login():
+    st.title("🔐 Smart Irrigation Login")
 
-soil = st.sidebar.slider("Soil Moisture (%)", 0, 100, 40)
-water = st.sidebar.slider("Water Availability (%)", 0, 100, 60)
-temperature = st.sidebar.slider("Temperature (°C)", 10, 45, 30)
+    username = st.text_input("Email / Username")
+    password = st.text_input("Password", type="password")
 
-# CROPS (12+)
-crop_list = [
-    "Rice", "Wheat", "Maize", "Sugarcane", "Cotton",
-    "Tomato", "Potato", "Onion", "Mango",
-    "Banana", "Grapes", "Chilli"
-]
-crop = st.sidebar.selectbox("Crop", crop_list)
+    if st.button("Login"):
+        if username == "admin" and password == "1234":
+            st.session_state.logged_in = True
+            st.success("Login Successful")
+        else:
+            st.error("Invalid Credentials")
 
-# IRRIGATION METHODS (12)
-methods = [
-    "Drip Irrigation", "Sprinkler Irrigation", "Surface Irrigation",
-    "Furrow Irrigation", "Basin Irrigation", "Border Irrigation",
-    "Subsurface Irrigation", "Manual Irrigation",
-    "Center Pivot Irrigation", "Micro Irrigation",
-    "Flood Irrigation", "Rain Gun Irrigation"
-]
-method = st.sidebar.selectbox("Irrigation Method", methods)
+# ---------------- MAIN APP ----------------
+def dashboard():
 
-# WEATHER (SIMULATED ADVANCED)
-weather = st.sidebar.selectbox("Weather", ["Sunny", "Cloudy", "Rainy"])
+    st.title("🌱 AI Smart Irrigation Dashboard")
 
-base_rain = random.randint(0, 100)
+    # TOP STATUS CARDS
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💧 Water Level", "65%")
+    col2.metric("🌡 Temperature", "32°C")
+    col3.metric("🌧 Rain Chance", f"{random.randint(20,90)}%")
 
-if weather == "Rainy":
-    rain_probability = min(100, base_rain + 40)
-elif weather == "Cloudy":
-    rain_probability = base_rain + 10
-else:
-    rain_probability = max(0, base_rain - 20)
+    st.divider()
 
-st.subheader("🌧 Rain Prediction")
-st.write(f"Chance of Rain: {rain_probability}%")
+    # INPUTS
+    st.sidebar.header("Input Parameters")
 
-# CROP WATER REQUIREMENT
-crop_water = {
-    "Rice": 80, "Wheat": 50, "Maize": 60, "Sugarcane": 90,
-    "Cotton": 70, "Tomato": 65, "Potato": 55, "Onion": 50,
-    "Mango": 40, "Banana": 85, "Grapes": 60, "Chilli": 55
-}
+    soil = st.sidebar.slider("Soil Moisture (%)", 0, 100, 40)
+    water = st.sidebar.slider("Water Availability (%)", 0, 100, 60)
+    temperature = st.sidebar.slider("Temperature (°C)", 10, 45, 30)
 
-required_water = crop_water[crop]
-
-# AI DECISION
-if soil < required_water and rain_probability < 40:
-    decision = "Irrigation ON"
-    reason = "Crop needs water + low rain"
-elif rain_probability >= 60:
-    decision = "Irrigation OFF"
-    reason = "Rain expected"
-else:
-    decision = "Moderate Irrigation"
-    reason = "Balanced condition"
-
-# OUTPUT
-st.subheader("🤖 AI Decision")
-st.success(decision)
-st.write("Reason:", reason)
-st.write("Selected Method:", method)
-
-# SCHEDULING
-if rain_probability > 60:
-    schedule = "Next irrigation after 2 days"
-elif soil < 30:
-    schedule = "Immediate irrigation required"
-else:
-    schedule = "Irrigate after 1 day"
-
-st.subheader("⏱ Irrigation Schedule")
-st.write(schedule)
-
-# ALERT
-if water < 30:
-    st.error("⚠ Low Water Availability")
-
-# GRAPH
-st.subheader("📈 Soil Moisture Trend")
-
-data = pd.DataFrame({
-    "Day": ["Day1", "Day2", "Day3", "Day4", "Day5"],
-    "Moisture": [
-        max(0, soil - 10),
-        soil - 5,
-        soil,
-        soil + 5,
-        min(100, soil + 10)
+    crop_list = [
+        "Rice", "Wheat", "Maize", "Sugarcane", "Cotton",
+        "Tomato", "Potato", "Onion", "Mango",
+        "Banana", "Grapes", "Chilli"
     ]
-})
+    crop = st.sidebar.selectbox("Crop", crop_list)
 
-st.line_chart(data.set_index("Day"))
+    irrigation_methods = [
+        "Drip Irrigation", "Sprinkler Irrigation", "Surface Irrigation",
+        "Furrow Irrigation", "Basin Irrigation", "Border Irrigation",
+        "Subsurface Irrigation", "Manual Irrigation",
+        "Center Pivot Irrigation", "Micro Irrigation",
+        "Flood Irrigation", "Rain Gun Irrigation"
+    ]
+    method = st.sidebar.selectbox("Irrigation Method", irrigation_methods)
 
-# WATER SAVING CALCULATION (NEW)
-water_saved = max(0, 100 - required_water)
+    # RAIN LOGIC
+    rain_probability = random.randint(0, 100)
 
-st.subheader("💧 Water Saving Estimate")
-st.write(f"{water_saved}% water optimized")
+    st.subheader("🌧 Rain Prediction")
+    st.write(f"{rain_probability}% chance of rain")
 
-# EFFICIENCY
-score = 100 - abs(50 - soil)
+    # CROP WATER NEED
+    crop_water = {
+        "Rice": 80, "Wheat": 50, "Maize": 60, "Sugarcane": 90,
+        "Cotton": 70, "Tomato": 65, "Potato": 55, "Onion": 50,
+        "Mango": 40, "Banana": 85, "Grapes": 60, "Chilli": 55
+    }
 
-st.subheader("📊 Efficiency Score")
-st.progress(score)
-st.write(f"{score}% Efficient")
+    required = crop_water[crop]
 
-# AI INSIGHT
-st.subheader("🧠 AI Insight")
+    # AI DECISION
+    if soil < required and rain_probability < 40:
+        decision = "🟢 Irrigation ON"
+    elif rain_probability > 60:
+        decision = "🔴 Irrigation OFF"
+    else:
+        decision = "🟡 Moderate Irrigation"
 
-if decision == "Irrigation ON":
-    st.info("System recommends watering crops now")
-elif decision == "Irrigation OFF":
-    st.info("Water saved due to rainfall or sufficient moisture")
+    # DISPLAY CARDS
+    st.subheader("🤖 AI Decision")
+    st.success(decision)
+
+    st.write("🌱 Crop:", crop)
+    st.write("💧 Method:", method)
+
+    # SCHEDULE
+    if rain_probability > 60:
+        schedule = "After 2 days"
+    elif soil < 30:
+        schedule = "Immediately"
+    else:
+        schedule = "After 1 day"
+
+    st.subheader("⏱ Irrigation Schedule")
+    st.info(schedule)
+
+    # GRAPH
+    st.subheader("📈 Soil Moisture Trend")
+
+    data = pd.DataFrame({
+        "Day": ["D1", "D2", "D3", "D4", "D5"],
+        "Moisture": [soil-10, soil-5, soil, soil+5, soil+10]
+    })
+
+    st.line_chart(data.set_index("Day"))
+
+    # ALERTS SECTION (LIKE YOUR IMAGE)
+    st.subheader("🚨 Active Alerts")
+
+    if water < 30:
+        st.error("⚠ Low Water Level")
+
+    if temperature > 38:
+        st.warning("🔥 High Temperature Risk")
+
+    if rain_probability > 80:
+        st.info("🌧 Heavy Rain Expected")
+
+# ---------------- ROUTING ----------------
+if not st.session_state.logged_in:
+    login()
 else:
-    st.info("Controlled irrigation ensures optimal growth")
+    dashboard()
