@@ -9,7 +9,7 @@ import time
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="AquaMind AI – Smart Irrigation",
+    page_title="SMART AI Irrigation System",
     page_icon="🌿",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -262,8 +262,8 @@ def login():
     st.markdown("""
     <div class="login-wrap">
         <div class="login-logo">🌿</div>
-        <div class="login-title">AquaMind AI</div>
-        <div class="login-sub">Smart Irrigation Intelligence Platform</div>
+        <div class="login-title">SMART AI</div>
+        <div class="login-sub">Irrigation System – Intelligence Platform</div>
         <button class="social-btn">🔵 &nbsp; Continue with Google</button>
         <button class="social-btn">⬛ &nbsp; Continue with Apple</button>
         <div class="divider">or sign in with email</div>
@@ -327,7 +327,7 @@ def dashboard():
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.6rem;">
         <span style="font-size:2.2rem;">🌿</span>
         <div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#e8f5e9;line-height:1;">AquaMind AI</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#e8f5e9;line-height:1;">SMART AI Irrigation System</div>
             <div style="color:rgba(200,230,200,0.55);font-size:0.82rem;letter-spacing:0.06em;">SMART IRRIGATION DASHBOARD</div>
         </div>
     </div>
@@ -496,7 +496,7 @@ def dashboard():
     # ── Footer ──
     st.markdown("""
     <div style="text-align:center;color:rgba(200,230,200,0.35);font-size:0.75rem;letter-spacing:0.05em;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.06);">
-    AquaMind AI · Smart Irrigation System · Powered by AI · Built with Streamlit
+    SMART AI Irrigation System · Powered by AI · Built with Streamlit
     </div>
     """, unsafe_allow_html=True)
 
