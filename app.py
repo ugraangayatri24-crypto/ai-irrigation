@@ -1,680 +1,280 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart AI Irrigation System</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+import tkinter as tk
+from tkinter import ttk, messagebox
+import random
+import threading
+import time
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
+
+class SmartAIIrrigationSystem:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Smart AI Irrigation System")
+        self.root.geometry("1200x800")
+        self.root.configure(bg='#0f172a')
+        
+        # Dark theme colors
+        self.colors = {
+            'bg': '#0f172a',
+            'card': 'rgba(255,255,255,0.1)',
+            'green': '#10b981',
+            'blue': '#3b82f6',
+            'text': '#f8fafc',
+            'secondary': '#cbd5e1'
         }
-
-        :root {
-            --primary-green: #10b981;
-            --secondary-blue: #3b82f6;
-            --dark-bg: #0f172a;
-            --card-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+        
+        # Sensor data
+        self.sensors = {
+            'soil_moisture': 50,
+            'temperature': 25,
+            'water_level': 70,
+            'rain_prob': 30
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 50%, var(--secondary-blue) 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-            overflow-x: hidden;
+        
+        self.crop_methods = {
+            'Rice': 'Flood Irrigation',
+            'Wheat': 'Drip Irrigation',
+            'Maize': 'Sprinkler',
+            'Cotton': 'Drip Irrigation'
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Login Page */
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-            animation: slideUp 0.8s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(45deg, var(--primary-green), var(--secondary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .google-login {
-            background: linear-gradient(45deg, #4285f4, #34a853);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 16px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .google-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(66, 133, 244, 0.4);
-        }
-
-        /* Dashboard */
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .header-title {
-            font-size: 2rem;
-            background: linear-gradient(45deg, var(--primary-green), var(--secondary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--card-bg);
-            padding: 10px 20px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Metrics Cards */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .metric-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s ease;
-            animation: fadeInUp 0.6s ease-out forwards;
-            opacity: 0;
-        }
-
-        .metric-card:nth-child(1) { animation-delay: 0.1s; }
-        .metric-card:nth-child(2) { animation-delay: 0.2s; }
-        .metric-card:nth-child(3) { animation-delay: 0.3s; }
-        .metric-card:nth-child(4) { animation-delay: 0.4s; }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .metric-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
-        }
-
-        .metric-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            opacity: 0.8;
-        }
-
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-            background: linear-gradient(45deg, var(--primary-green), var(--secondary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .metric-label {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* AI Decision */
-        .ai-decision {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .decision-status {
-            font-size: 1.5rem;
-            font-weight: 700;
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: inline-block;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .status-on { background: rgba(16, 185, 129, 0.3); color: var(--success); }
-        .status-off { background: rgba(239, 68, 68, 0.3); color: var(--danger); }
-        .status-moderate { background: rgba(245, 158, 11, 0.3); color: var(--warning); }
-
-        /* Controls Section */
-        .controls-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .control-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .form-group select:focus,
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        }
-
-        /* Charts */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .chart-container {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
-            height: 300px;
-        }
-
-        .chart-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        /* Alerts */
-        .alerts {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .alert {
-            padding: 15px 20px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideInRight 0.5s ease-out;
-        }
-
-        .alert.warning { background: rgba(245, 158, 11, 0.2); border-left: 4px solid var(--warning); }
-        .alert.danger { background: rgba(239, 68, 68, 0.2); border-left: 4px solid var(--danger); }
-
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, var(--primary-green), #059669);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
-        }
-
-        /* Future Scope */
-        .future-scope {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container { padding: 15px; }
-            .dashboard-header { flex-direction: column; text-align: center; }
-            .metrics-grid,
-            .charts-grid,
-            .controls-section { grid-template-columns: 1fr; }
-            .login-card { padding: 30px 20px; }
-            .logo h1 { font-size: 2rem; }
-        }
-
-        @media (max-width: 480px) {
-            .metric-value { font-size: 2rem; }
-            .chart-container { height: 250px; }
-        }
-
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <!-- Login Page -->
-    <div id="loginPage" class="login-container">
-        <div class="login-card">
-            <div class="logo">
-                <h1><i class="fas fa-seedling"></i> Smart AI Irrigation</h1>
-                <p style="color: var(--text-secondary); margin-top: 10px;">Intelligent Farm Management System</p>
-            </div>
-            <button class="google-login" onclick="loginWithGoogle()">
-                <i class="fab fa-google"></i>
-                Continue with Google
-            </button>
-        </div>
-    </div>
-
-    <!-- Dashboard -->
-    <div id="dashboard" class="container hidden">
-        <div class="dashboard-header">
-            <div>
-                <h1 class="header-title">
-                    <i class="fas fa-tachometer-alt"></i> Smart Irrigation Dashboard
-                </h1>
-            </div>
-            <div class="user-profile">
-                <i class="fas fa-user-circle" style="font-size: 2rem;"></i>
-                <span>Farm Owner</span>
-                <button class="btn btn-primary" onclick="logout()" style="padding: 8px 16px; font-size: 0.9rem;">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </div>
-
-        <!-- Metrics -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-icon" style="color: #10b981;"><i class="fas fa-tint"></i></div>
-                <div class="metric-value" id="soilMoisture">0%</div>
-                <div class="metric-label">Soil Moisture</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon" style="color: #f59e0b;"><i class="fas fa-thermometer-half"></i></div>
-                <div class="metric-value" id="temperature">0°C</div>
-                <div class="metric-label">Temperature</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon" style="color: #3b82f6;"><i class="fas fa-water"></i></div>
-                <div class="metric-value" id="waterLevel">0%</div>
-                <div class="metric-label">Water Level</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon" style="color: #8b5cf6;"><i class="fas fa-cloud-rain"></i></div>
-                <div class="metric-value" id="rainProb">0%</div>
-                <div class="metric-label">Rain Probability</div>
-            </div>
-        </div>
-
-        <!-- AI Decision -->
-        <div class="ai-decision">
-            <div class="decision-status" id="decisionStatus">Loading...</div>
-            <div id="decisionReason" style="font-size: 1.1rem; color: var(--text-secondary); margin-top: 10px;"></div>
-            <div id="nextIrrigation" style="font-size: 1rem; color: var(--text-secondary); margin-top: 5px;"></div>
-        </div>
-
-        <!-- Controls & Alerts -->
-        <div class="controls-section">
-            <div class="control-card">
-                <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-seedling"></i> Crop Selection</h3>
-                <div class="form-group">
-                    <label>Crop Type</label>
-                    <select id="cropSelect" onchange="updateIrrigationMethod()">
-                        <option value="Rice">Rice</option>
-                        <option value="Wheat">Wheat</option>
-                        <option value="Maize">Maize</option>
-                        <option value="Cotton">Cotton</option>
-                    </select>
-                </div>
-                <div id="irrigationMethod" style="font-size: 1.1rem; font-weight: 700; color: var(--primary-green);"></div>
-            </div>
-            <div class="control-card">
-                <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-bell"></i> Farm Alerts</h3>
-                <div class="alerts" id="alertsContainer"></div>
-            </div>
-        </div>
-
-        <!-- Charts -->
-        <div class="charts-grid">
-            <div class="chart-container">
-                <div class="chart-title">Soil Moisture Trend (Last 5 Days)</div>
-                <canvas id="moistureChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <div class="chart-title">Water Usage vs Saved</div>
-                <canvas id="waterChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Future Scope -->
-        <div class="future-scope">
-            <h3 style="margin-bottom: 20px;"><i class="fas fa-rocket"></i> Future Scope</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;">
-                <div><i class="fas fa-satellite" style="color: var(--primary-green); margin-right: 10px;"></i>IoT Sensors Integration</div>
-                <div><i class="fas fa-cloud-sun" style="color: var(--secondary-blue); margin-right: 10px;"></i>Real-time Weather API</div>
-                <div><i class="fas fa-brain" style="color: #8b5cf6; margin-right: 10px;"></i>ML-based Prediction Model</div>
-                <div><i class="fas fa-mobile-alt" style="color: var(--warning); margin-right: 10px;"></i>Mobile App</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Simulated user data
-        const userData = { loggedIn: false, email: '' };
-
-        // Real-time sensor data
-        let sensors = {
-            soilMoisture: 50,
-            temperature: 25,
-            waterLevel: 70,
-            rainProb: 30
-        };
-
-        // Charts data
-        let moistureChart, waterChart;
-        let moistureData = [45, 52, 48, 55, 62];
-        let waterUsageData = [120, 110, 95, 105, 88];
-        let waterSavedData = [30, 35, 42, 38, 45];
-
-        // Initialize app
-        function init() {
-            setupCharts();
-            simulateSensors();
-            setInterval(simulateSensors, 2500);
-            setInterval(checkAlerts, 1000);
-        }
-
-        // Google Login Simulation
-        function loginWithGoogle() {
-            userData.loggedIn = true;
-            userData.email = 'farmer@example.com';
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            init();
-        }
-
-        function logout() {
-            userData.loggedIn = false;
-            document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('loginPage').classList.remove('hidden');
-        }
-
-        // Sensor Simulation
-        function simulateSensors() {
-            sensors.soilMoisture = Math.max(10, Math.min(95, sensors.soilMoisture + (Math.random() - 0.5) * 8));
-            sensors.temperature = Math.max(15, Math.min(45, sensors.temperature + (Math.random() - 0.5) * 3));
-            sensors.waterLevel = Math.max(20, Math.min(100, sensors.waterLevel + (Math.random() - 0.5) * 5));
-            sensors.rainProb = Math.max(0, Math.min(100, sensors.rainProb + (Math.random() - 0.5) * 15));
-
-            updateDisplay();
-            updateAI decision();
-            updateCharts();
-        }
-
-        function updateDisplay() {
-            document.getElementById('soilMoisture').textContent = `${Math.round(sensors.soilMoisture)}%`;
-            document.getElementById('temperature').textContent = `${Math.round(sensors.temperature)}°C`;
-            document.getElementById('waterLevel').textContent = `${Math.round(sensors.waterLevel)}%`;
-            document.getElementById('rainProb').textContent = `${Math.round(sensors.rainProb)}%`;
-        }
-
-        // AI Decision Engine
-        function updateAIDecision() {
-            const { soilMoisture, rainProb } = sensors;
-            const statusEl = document.getElementById('decisionStatus');
-            const reasonEl = document.getElementById('decisionReason');
-            const nextEl = document.getElementById('nextIrrigation');
-
-            let status, reason, nextTime;
-
-            if (soilMoisture < 30 && rainProb < 40) {
-                status = 'Irrigation ON';
-                reason = 'Low soil moisture and minimal rain expected';
-                nextTime = 'Irrigating now...';
-                statusEl.className = 'decision-status status-on';
-            } else if (rainProb > 60) {
-                status = 'Irrigation OFF';
-                reason = 'High rain probability detected';
-                nextTime = 'Next check in 2 hours';
-                statusEl.className = 'decision-status status-off';
-            } else {
-                status = 'Moderate Irrigation';
-                reason = 'Optimal conditions - conserving water';
-                nextTime = 'Scheduled for evening';
-                statusEl.className = 'decision-status status-moderate';
-            }
-
-            statusEl.textContent = status;
-            reasonEl.textContent = reason;
-            nextEl.textContent = nextTime;
-        }
-
-        // Crop Intelligence
-        const cropMethods = {
-            Rice: 'Flood Irrigation',
-            Wheat: 'Drip Irrigation',
-            Maize: 'Sprinkler',
-            Cotton: 'Drip Irrigation'
-        };
-
-        function updateIrrigationMethod() {
-            const crop = document.getElementById('cropSelect').value;
-            document.getElementById('irrigationMethod').textContent = 
-                `Recommended: ${cropMethods[crop]}`;
-        }
-
-        // Alerts System
-        function checkAlerts() {
-            const alertsContainer = document.getElementById('alertsContainer');
-            let alerts = [];
-
-            if (sensors.soilMoisture < 25) {
-                alerts.push({ type: 'danger', message: 'Critical: Soil moisture very low!' });
-            } else if (sensors.soilMoisture < 35) {
-                alerts.push({ type: 'warning', message: 'Low soil moisture detected' });
-            }
-
-            if (sensors.temperature > 38) {
-                alerts.push({ type: 'danger', message: `High temperature: ${Math.round(sensors.temperature)}°C` });
-            } else if (sensors.temperature > 35) {
-                alerts.push({ type: 'warning', message: 'Temperature rising' });
-            }
-
-            if (sensors.waterLevel < 25) {
-                alerts.push({ type: 'danger', message: 'Water tank critically low!' });
-            }
-
-            alertsContainer.innerHTML = alerts.map(alert => 
-                `<div class="alert ${alert.type}">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    ${alert.message}
-                </div>`
-            ).join('');
-        }
-
-        // Charts Setup
-        function setupCharts() {
-            const moistureCtx = document.getElementById('moistureChart').getContext('2d');
-            moistureChart = new Chart(moistureCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-                    datasets: [{
-                        label: 'Soil Moisture (%)',
-                        data: moistureData,
-                        borderColor: 'rgba(16, 185, 129, 1)',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 100 }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-
-            const waterCtx = document.getElementById('waterChart').getContext('2d');
-            waterChart = new Chart(waterCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-                    datasets: [
-                        {
-                            label: 'Water Used (L)',
-                            data: waterUsageData,
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)'
-                        },
-                        {
-                            label: 'Water Saved (L)',
-                            data: waterSavedData,
-                            backgroundColor: 'rgba(16, 185, 129, 0.7)'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        function updateCharts() {
-            // Update moisture trend
-            moistureData.push(sensors.soilMoisture);
-            if (moistureData.length > 5) moistureData.shift();
-            moistureChart.data.datasets[0].data = moistureData;
-            moistureChart.update('none');
-
-            // Update water charts
-            waterUsageData.push(Math.round(Math.random() * 50 + 80));
-            waterSavedData.push(Math.round(Math.random() * 20 + 30));
-            if (waterUsageData.length > 5) {
-                waterUsageData.shift();
-                waterSavedData.shift();
-            }
-            waterChart.data.datasets[0].data = waterUsageData;
-            waterChart.data.datasets[1].data = waterSavedData;
-            waterChart.update('none');
-        }
-
-        // Initialize crop method on load
-        updateIrrigationMethod();
-    </script>
-</body>
-</html>
+        
+        self.logged_in = False
+        self.current_crop = 'Rice'
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        # Login Frame
+        self.login_frame = tk.Frame(self.root, bg=self.colors['bg'])
+        self.login_frame.pack(fill='both', expand=True)
+        
+        title_label = tk.Label(self.login_frame, text="Smart AI Irrigation", 
+                              font=('Segoe UI', 36, 'bold'),
+                              fg='#10b981', bg=self.colors['bg'])
+        title_label.pack(pady=50)
+        
+        subtitle_label = tk.Label(self.login_frame, 
+                                 text="Intelligent Farm Management System",
+                                 font=('Segoe UI', 14), fg=self.colors['secondary'],
+                                 bg=self.colors['bg'])
+        subtitle_label.pack(pady=10)
+        
+        login_btn = tk.Button(self.login_frame, text="Continue with Google",
+                             font=('Segoe UI', 14, 'bold'), bg='#4285f4',
+                             fg='white', command=self.login,
+                             relief='flat', padx=40, pady=15)
+        login_btn.pack(pady=30)
+        
+        # Dashboard Frame (hidden initially)
+        self.dashboard_frame = tk.Frame(self.root, bg=self.colors['bg'])
+        
+    def login(self):
+        self.logged_in = True
+        self.login_frame.destroy()
+        self.create_dashboard()
+        
+    def create_dashboard(self):
+        # Header
+        header_frame = tk.Frame(self.dashboard_frame, bg=self.colors['bg'])
+        header_frame.pack(fill='x', padx=20, pady=20)
+        
+        title_label = tk.Label(header_frame, text="Smart Irrigation Dashboard",
+                              font=('Segoe UI', 24, 'bold'), fg='#10b981',
+                              bg=self.colors['bg'])
+        title_label.pack(side='left')
+        
+        profile_btn = tk.Button(header_frame, text="Logout", command=self.logout,
+                               bg='#ef4444', fg='white', font=('Segoe UI', 10, 'bold'),
+                               relief='flat', padx=20)
+        profile_btn.pack(side='right')
+        
+        # Metrics Grid
+        metrics_frame = tk.Frame(self.dashboard_frame, bg=self.colors['bg'])
+        metrics_frame.pack(fill='x', padx=20, pady=10)
+        
+        self.metric_labels = {}
+        metrics = [
+            ('Soil Moisture', 'soil_moisture', '%', 'fas fa-tint', '#10b981'),
+            ('Temperature', 'temperature', '°C', 'fas fa-thermometer-half', '#f59e0b'),
+            ('Water Level', 'water_level', '%', 'fas fa-water', '#3b82f6'),
+            ('Rain Probability', 'rain_prob', '%', 'fas fa-cloud-rain', '#8b5cf6')
+        ]
+        
+        for i, (name, key, unit, icon, color) in enumerate(metrics):
+            frame = tk.Frame(metrics_frame, bg='rgba(255,255,255,0.1)', relief='solid', bd=1)
+            frame.grid(row=0, column=i, padx=10, pady=10, sticky='nsew')
+            frame.configure(width=250, height=150)
+            
+            tk.Label(frame, text=name, font=('Segoe UI', 10), fg=self.colors['secondary'],
+                    bg='rgba(255,255,255,0.1)').pack(pady=5)
+            self.metric_labels[key] = tk.Label(frame, text="0", font=('Segoe UI', 36, 'bold'),
+                                              fg=color, bg='rgba(255,255,255,0.1)')
+            self.metric_labels[key].pack(pady=10)
+        
+        metrics_frame.grid_columnconfigure(0, weight=1)
+        metrics_frame.grid_columnconfigure(1, weight=1)
+        metrics_frame.grid_columnconfigure(2, weight=1)
+        metrics_frame.grid_columnconfigure(3, weight=1)
+        
+        # AI Decision
+        decision_frame = tk.LabelFrame(self.dashboard_frame, text="AI Irrigation Decision",
+                                      font=('Segoe UI', 12, 'bold'), fg='#10b981',
+                                      bg=self.colors['bg'], relief='flat')
+        decision_frame.pack(fill='x', padx=20, pady=20)
+        
+        self.decision_label = tk.Label(decision_frame, text="Loading...", 
+                                      font=('Segoe UI', 20, 'bold'),
+                                      bg='rgba(16,185,129,0.2)', fg='#10b981',
+                                      relief='solid', bd=2, pady=20)
+        self.decision_label.pack(pady=20)
+        
+        self.reason_label = tk.Label(decision_frame, text="", 
+                                    font=('Segoe UI', 12), fg=self.colors['secondary'],
+                                    bg=self.colors['bg'])
+        self.reason_label.pack()
+        
+        # Controls Row
+        controls_frame = tk.Frame(self.dashboard_frame, bg=self.colors['bg'])
+        controls_frame.pack(fill='x', padx=20, pady=10)
+        
+        # Crop Selection
+        crop_frame = tk.LabelFrame(controls_frame, text="Crop Selection",
+                                  font=('Segoe UI', 10, 'bold'), fg='#10b981',
+                                  bg=self.colors['bg'], relief='flat')
+        crop_frame.pack(side='left', fill='both', expand=True, padx=(0,10))
+        
+        tk.Label(crop_frame, text="Crop Type:", font=('Segoe UI', 10, 'bold'),
+                fg=self.colors['text'], bg=self.colors['bg']).pack(anchor='w', padx=10, pady=5)
+        self.crop_var = tk.StringVar(value='Rice')
+        crop_menu = ttk.Combobox(crop_frame, textvariable=self.crop_var,
+                                values=list(self.crop_methods.keys()),
+                                state='readonly', font=('Segoe UI', 11))
+        crop_menu.pack(padx=10, pady=5, fill='x')
+        crop_menu.bind('<<ComboboxSelected>>', self.update_crop_method)
+        
+        self.method_label = tk.Label(crop_frame, text="Recommended: Flood Irrigation",
+                                    font=('Segoe UI', 12, 'bold'), fg='#10b981',
+                                    bg=self.colors['bg'])
+        self.method_label.pack(pady=5)
+        
+        # Charts Frame
+        charts_frame = tk.Frame(self.dashboard_frame, bg=self.colors['bg'])
+        charts_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # Moisture Chart
+        fig1, ax1 = plt.subplots(figsize=(6, 3), facecolor=self.colors['bg'])
+        ax1.set_facecolor(self.colors['bg'])
+        self.moisture_line, = ax1.plot([], [], 'o-', color='#10b981', linewidth=3, markersize=8)
+        ax1.set_title('Soil Moisture Trend (Last 5 Days)', color='white', fontsize=12, pad=20)
+        ax1.set_ylabel('Moisture %', color='white')
+        ax1.tick_params(colors='white')
+        ax1.grid(True, alpha=0.3)
+        self.moisture_canvas = FigureCanvasTkAgg(fig1, charts_frame)
+        self.moisture_canvas.get_tk_widget().pack(side='left', fill='both', expand=True, padx=(0,10))
+        
+        # Water Usage Chart
+        fig2, ax2 = plt.subplots(figsize=(6, 3), facecolor=self.colors['bg'])
+        ax2.set_facecolor(self.colors['bg'])
+        self.water_bars1 = ax2.bar([], [], color='#3b82f6', alpha=0.7, label='Used')
+        self.water_bars2 = ax2.bar([], [], color='#10b981', alpha=0.7, label='Saved')
+        ax2.set_title('Water Usage vs Saved', color='white', fontsize=12, pad=20)
+        ax2.set_ylabel('Liters', color='white')
+        ax2.tick_params(colors='white')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        self.water_canvas = FigureCanvasTkAgg(fig2, charts_frame)
+        self.water_canvas.get_tk_widget().pack(side='right', fill='both', expand=True)
+        
+        self.dashboard_frame.pack(fill='both', expand=True)
+        
+        # Start sensor simulation
+        self.moisture_data = [45, 52, 48, 55, 62]
+        self.water_used = [120, 110, 95, 105, 88]
+        self.water_saved = [30, 35, 42, 38, 45]
+        
+        self.update_display()
+        self.sensor_thread = threading.Thread(target=self.simulate_sensors, daemon=True)
+        self.sensor_thread.start()
+        
+    def logout(self):
+        self.dashboard_frame.destroy()
+        self.setup_ui()
+        
+    def simulate_sensors(self):
+        while True:
+            self.sensors['soil_moisture'] = max(10, min(95, self.sensors['soil_moisture'] + (random.random() - 0.5) * 8))
+            self.sensors['temperature'] = max(15, min(45, self.sensors['temperature'] + (random.random() - 0.5) * 3))
+            self.sensors['water_level'] = max(20, min(100, self.sensors['water_level'] + (random.random() - 0.5) * 5))
+            self.sensors['rain_prob'] = max(0, min(100, self.sensors['rain_prob'] + (random.random() - 0.5) * 15))
+            
+            self.root.after(0, self.update_display)
+            time.sleep(2.5)
+            
+    def update_display(self):
+        # Update metrics
+        for key, label in self.metric_labels.items():
+            value = self.sensors[key]
+            label.config(text=f"{value:.0f}{'%' if key != 'temperature' else '°C'}")
+        
+        # Update AI decision
+        self.update_ai_decision()
+        
+        # Update charts
+        self.update_charts()
+        
+    def update_ai_decision(self):
+        soil = self.sensors['soil_moisture']
+        rain = self.sensors['rain_prob']
+        
+        if soil < 30 and rain < 40:
+            status = "🚿 IRRIGATION ON"
+            color = '#10b981'
+            reason = "Low soil moisture and minimal rain expected"
+        elif rain > 60:
+            status = "⛔ IRRIGATION OFF"
+            color = '#ef4444'
+            reason = "High rain probability detected"
+        else:
+            status = "⚖️ Moderate Irrigation"
+            color = '#f59e0b'
+            reason = "Optimal conditions - conserving water"
+        
+        self.decision_label.config(text=status, fg=color)
+        self.reason_label.config(text=reason)
+        
+    def update_crop_method(self, event=None):
+        crop = self.crop_var.get()
+        method = self.crop_methods[crop]
+        self.method_label.config(text=f"Recommended: {method}")
+        
+    def update_charts(self):
+        # Moisture chart
+        self.moisture_data.append(self.sensors['soil_moisture'])
+        if len(self.moisture_data) > 5:
+            self.moisture_data.pop(0)
+        self.moisture_line.set_data(range(len(self.moisture_data)), self.moisture_data)
+        ax1 = self.moisture_canvas.figure.axes[0]
+        ax1.set_xlim(0, len(self.moisture_data)-1)
+        ax1.set_ylim(0, 100)
+        self.moisture_canvas.draw()
+        
+        # Water chart
+        self.water_used.append(random.randint(80, 130))
+        self.water_saved.append(random.randint(25, 50))
+        if len(self.water_used) > 5:
+            self.water_used.pop(0)
+            self.water_saved.pop(0)
+            
+        ax2 = self.water_canvas.figure.axes[0]
+        x = range(len(self.water_used))
+        self.water_bars1 = ax2.bar(x, self.water_used, color='#3b82f6', alpha=0.7, label='Used')
+        self.water_bars2 = ax2.bar(x, self.water_saved, color='#10b981', alpha=0.7, label='Saved')
+        ax2.set_xlim(-0.5, len(self.water_used)-0.5)
+        self.water_canvas.draw()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SmartAIIrrigationSystem(root)
+    root.mainloop()
