@@ -6,43 +6,46 @@ import re
 import requests
 
 # ─────────────────────────────────────────────
-# PAGE CONFIG
+# CONFIG
 # ─────────────────────────────────────────────
-st.set_page_config(
-    page_title="SMART AI IRRIGATION SYSTEM",
-    page_icon="🌿",
-    layout="wide"
-)
+st.set_page_config(page_title="AquaMind AI", layout="wide")
+
+API_KEY = "YOUR_OPENWEATHER_API_KEY"  # 🔴 Replace this
 
 # ─────────────────────────────────────────────
 # WEATHER API
 # ─────────────────────────────────────────────
-API_KEY = "YOUR_API_KEY_HERE"
-
-def get_weather(lat=13.6, lon=79.4):
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
+def get_weather(city="Madanapalle"):
     try:
-        res = requests.get(url)
-        data = res.json()
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
+        data = requests.get(url).json()
 
         temp = data["main"]["temp"]
         humidity = data["main"]["humidity"]
         rain = data.get("rain", {}).get("1h", 0)
 
-        rain_prob = min(100, int(rain * 20 + humidity * 0.3))
-
+        rain_prob = min(100, int(humidity * 0.7 + rain * 10))
         return temp, humidity, rain_prob
+
     except:
-        return 30, 50, 20
+        return 30, 60, 20  # fallback
+
+
+# ─────────────────────────────────────────────
+# CROP DATA
+# ─────────────────────────────────────────────
+CROP_DATA = {
+    "Rice": {"method": "Flood", "water": "High"},
+    "Wheat": {"method": "Sprinkler", "water": "Medium"},
+    "Maize": {"method": "Drip", "water": "Medium"},
+    "Sugarcane": {"method": "Furrow", "water": "High"},
+    "Cotton": {"method": "Drip", "water": "Low"},
+    "Tomato": {"method": "Drip", "water": "Medium"},
+}
 
 # ─────────────────────────────────────────────
 # AI LOGIC
 # ─────────────────────────────────────────────
-CROP_BEST_METHOD = {
-    "Rice": "Flood", "Wheat": "Sprinkler", "Maize": "Drip",
-    "Sugarcane": "Furrow", "Cotton": "Drip", "Tomato": "Drip"
-}
-
 def ai_decision(soil, rain):
     if soil < 40 and rain < 40:
         return "Irrigation ON"
@@ -51,48 +54,32 @@ def ai_decision(soil, rain):
     else:
         return "Moderate Irrigation"
 
-def predict_yield(crop, soil, temp, water):
+def yield_prediction(soil, temp, water, method, crop):
     score = 0
 
-    if soil > 60: score += 30
-    elif soil > 40: score += 20
-    else: score += 10
+    if 40 <= soil <= 70: score += 30
+    if 20 <= temp <= 35: score += 30
+    if water > 50: score += 20
+    if method == CROP_DATA[crop]["method"]: score += 20
 
-    if 20 <= temp <= 32: score += 30
-    elif temp <= 38: score += 20
-    else: score += 10
+    return min(score, 100)
 
-    if water > 70: score += 30
-    elif water > 50: score += 20
-    else: score += 10
-
-    if crop in ["Rice", "Sugarcane"]:
-        score += 10
-
-    yield_percent = min(100, score)
-
-    if yield_percent > 80:
-        status = "High Yield Expected"
-    elif yield_percent > 60:
-        status = "Moderate Yield"
-    else:
-        status = "Low Yield Risk"
-
-    return yield_percent, status
+def crop_advice(crop):
+    data = CROP_DATA[crop]
+    return f"Best method: {data['method']} | Water need: {data['water']}"
 
 # ─────────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────────
 def login():
-    st.title("🌿 SMART AI IRRIGATION SYSTEM")
-    st.subheader("Login")
+    st.title("🌿 AquaMind AI Login")
 
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
         if "@gmail.com" in email and len(password) >= 6:
-            st.session_state["logged_in"] = True
+            st.session_state["login"] = True
             st.rerun()
         else:
             st.error("Invalid login")
@@ -102,48 +89,57 @@ def login():
 # ─────────────────────────────────────────────
 def dashboard():
 
-    # Real weather
-    temp, humidity, rain = get_weather()
+    st.title("🌿 AquaMind AI Dashboard")
 
-    soil = st.slider("Soil Moisture (%)", 0, 100, 50)
-    water = st.slider("Water Availability (%)", 0, 100, 60)
-    crop = st.selectbox("Crop", list(CROP_BEST_METHOD.keys()))
+    # Weather API
+    temp_api, humidity, rain = get_weather()
 
-    st.title("🌿 SMART AI IRRIGATION SYSTEM")
+    st.sidebar.header("Inputs")
 
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Soil Moisture", f"{soil}%")
-    col2.metric("Temperature", f"{temp}°C")
-    col3.metric("Rain Probability", f"{rain}%")
-    col4.metric("Humidity", f"{humidity}%")
+    soil = st.sidebar.slider("Soil Moisture", 0, 100, 50)
+    water = st.sidebar.slider("Water Level", 0, 100, 60)
+    crop = st.sidebar.selectbox("Crop", list(CROP_DATA.keys()))
+    method = st.sidebar.selectbox(
+        "Irrigation Method",
+        ["Drip", "Sprinkler", "Flood", "Furrow"]
+    )
 
-    # AI Decision
+    # AI outputs
     decision = ai_decision(soil, rain)
-    st.subheader("🤖 AI Irrigation Decision")
+    yield_score = yield_prediction(soil, temp_api, water, method, crop)
+    advice = crop_advice(crop)
+
+    # ── DISPLAY ──
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("🌡 Temperature", f"{temp_api} °C")
+    col2.metric("💧 Soil Moisture", f"{soil}%")
+    col3.metric("🌧 Rain Chance", f"{rain}%")
+
+    st.subheader("🤖 AI Decision")
     st.success(decision)
 
-    # Yield Prediction
-    yield_percent, status = predict_yield(crop, soil, temp, water)
+    st.subheader("🌾 Crop Intelligence")
+    st.info(advice)
 
     st.subheader("📊 Yield Prediction")
-    st.write(f"Expected Yield: {yield_percent}%")
-    st.write(f"Status: {status}")
+    st.progress(yield_score / 100)
+    st.write(f"Estimated Yield Efficiency: **{yield_score}%**")
 
     # Chart
     df = pd.DataFrame({
-        "Day": ["Mon","Tue","Wed","Thu","Fri"],
-        "Moisture": [random.randint(20,80) for _ in range(5)]
+        "Day": ["1","2","3","4","5"],
+        "Moisture": np.random.randint(30, 80, 5)
     })
     st.line_chart(df.set_index("Day"))
 
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
+if "login" not in st.session_state:
+    st.session_state["login"] = False
 
-if st.session_state["logged_in"]:
+if st.session_state["login"]:
     dashboard()
 else:
     login()
